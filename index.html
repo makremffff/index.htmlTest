@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>USDT Miner</title>
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --card:#111;
+      --accent:#00bcd4;
+      --accent2:#8a2be2;
+      --text:#eee;
+      --sub:#999;
+      --radius:18px;
+      --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      height:100vh;
+      display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(ellipse at center,var(--accent)0%,var(--bg)70%);
+      font-family:var(--font);color:var(--text);
+    }
+    .phone{
+      width:min(390px,92vw);height:93vh;
+      background:#000;border-radius:50px;padding:8px;
+      box-shadow:0 0 0 2px #222,0 20px 60px #0006;
+      display:flex;flex-direction:column;overflow:hidden;
+    }
+    .screen{
+      flex:1;background:var(--bg);border-radius:42px;
+      display:flex;flex-direction:column;padding:12px;
+    }
+    .status{
+      display:flex;justify-content:space-between;padding:8px 20px;font-size:13px;color:var(--sub);
+    }
+    .balance{
+      display:flex;justify-content:space-between;align-items:center;
+      background:var(--card);padding:14px 18px;border-radius:var(--radius);margin:8px 0;
+    }
+    .balance div{font-size:22px;font-weight:600;}
+    .balance span{font-size:12px;color:var(--sub);}
+    #timer{font-family:monospace;font-size:14px;color:var(--accent);}
+    .circle{
+      width:min(200px,45vw);height:min(200px,45vw);margin:20px auto;
+      border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      box-shadow:0 0 40px #00bcd455;position:relative;
+    }
+    .circle.ripple::after{
+      content:'';position:absolute;inset:0;
+      border-radius:50%;
+      background:radial-gradient(circle,transparent 30%,var(--accent) 70%);
+      animation:pulse 1.3s ease-out infinite;
+    }
+    @keyframes pulse{0%{transform:scale(.7);opacity:.8}100%{transform:scale(1.4);opacity:0}}
+    .btns{
+      display:flex;gap:10px;margin:0 8px;
+    }
+    .btn{
+      flex:1;padding:12px;border:none;border-radius:12px;
+      background:var(--card);color:var(--text);font-weight:600;
+      cursor:pointer;transition:.2s;
+    }
+    .btn:hover{background:#222;}
+    .nav{
+      display:flex;justify-content:space-around;padding:10px 0;margin-top:auto;
+      background:#0006;border-radius:var(--radius) var(--radius) 0 0;
+    }
+    .nav-item{
+      text-align:center;font-size:11px;color:var(--sub);cursor:pointer;
+    }
+    .nav-item span{font-size:20px;display:block;margin-bottom:4px;}
+    .modal{
+      position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;
+    }
+    .modal-content{
+      background:var(--card);border:1px solid var(--accent);border-radius:var(--radius);
+      padding:18px;width:90%;max-width:320px;color:var(--text);
+    }
+    .modal-content input{
+      width:100%;padding:10px;margin:8px 0;border:none;border-radius:8px;background:#222;color:var(--text);
+    }
+    .modal-content button{
+      width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#000;font-weight:bold;
+    }
+    .close{float:right;cursor:pointer;color:var(--accent);}
+    .toast{
+      position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+      background:var(--card);border:1px solid var(--accent);padding:10px 16px;border-radius:8px;
+      display:none;font-size:13px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="screen">
+    <div class="status">
+      <span id="clock">--:--</span>
+      <span>100% 🔋</span>
+    </div>
+
+    <div class="balance">
+      <div>
+        <span id="pts">0</span><br><span>Points</span>
+      </div>
+      <div>
+        <span id="usdt">0.000</span><br><span>USDT</span>
+      </div>
+      <div id="timer">--:--:--</div>
+    </div>
+
+    <div class="circle" id="circle">
+      <span style="font-size:48px;">⚡</span>
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="boxBtn">🎁 Mystery</button>
+      <button class="btn" id="bonusBtn">⚡ Bonus</button>
+    </div>
+
+    <div class="nav">
+      <div class="nav-item" id="taskBtn">📋<span>Task</span></div>
+      <div class="nav-item" id="swapBtn">⇄<span>Swap</span></div>
+      <div class="nav-item" id="watchBtn">👁<span>Watch</span><span id="badge" class="ad-badge">30</span></div>
+      <div class="nav-item" id="wdBtn">💰<span>Withdraw</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal" id="taskMdl"><div class="modal-content">
+  <span class="close" id="closeTask">×</span>
+  <strong>Daily Task</strong><br>
+  <label><input type="checkbox" id="joinChk"> Join Channel (+10k)</label><br><br>
+  <button id="claimTask">Claim</button>
+</div></div>
+
+<div class="modal" id="swapMdl"><div class="modal-content">
+  <span class="close" id="closeSwap">×</span>
+  <div>Swap Points ➜ USDT</div>
+  <input type="number" id="swapIn" min="10000" placeholder="10000">
+  <div>You get: <b id="swapOut">0.000</b> USDT</div>
+  <button id="doSwap">Convert</button>
+</div></div>
+
+<div class="modal" id="wdMdl"><div class="modal-content">
+  <span class="close" id="closeWd">×</span>
+  <div>Withdraw USDT (Polygon)</div>
+  <input id="wdAddr" placeholder="0x...">
+  <input type="number" id="wdAmt" min="0.5" step="0.1" placeholder="0.5">
+  <button id="doWd">Withdraw</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== helpers ====== */
+const $=s=>document.querySelector(s);
+const toast=(msg,t=2e3)=>{
+  const x=$('#toast');x.textContent=msg;x.style.display='block';
+  setTimeout(()=>x.style.display='none',t);
+};
+const LS=(k,v=null)=>v===null?localStorage.getItem(k):localStorage.setItem(k,v);
+const API='https://index-html-click-bot-p9f4.vercel.app';
+async function saveRemote(body){
+  try{await fetch(`${API}/api/user/${UID}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}catch{}
+}
+/* ====== telegram ====== */
+const tg=window.Telegram?.WebApp||{};
+const UID=tg.initDataUnsafe?.user?.id||999999;
+const UNAME=tg.initDataUnsafe?.user?.username||'user_'+UID;
+/* ====== state ====== */
+let clicks=0,usdt=0,counter=30,auto=false,left=3*3600;
+let lastMyst=0,lastQuick=0,joined=false;
+/* ====== load ====== */
+async function load(){
+  try{
+    const r=await fetch(`${API}/api/user/${UID}`);
+    if(r.ok){const rj=await r.json();Object.assign(window,rj);}
+  }catch{}
+  clicks=Number(LS('clicks'))||0;
+  usdt=Number(LS('usdt'))||0;
+  counter=Number(LS('counter'))||30;
+  auto=LS('auto')==='true';
+  left=Number(LS('left'))||(3*3600);
+  lastMyst=Number(LS('myst'))||0;
+  lastQuick=Number(LS('quick'))||0;
+  joined=LS('joined')==='true';
+  updateUI();
+  if(auto&&left>0){startAuto();startCount();}
+}
+function updateUI(){
+  $('#pts').textContent=clicks;
+  $('#usdt').textContent=usdt.toFixed(3);
+  $('#badge').textContent=counter;
+  $('#circle').classList.toggle('ripple',auto);
+}
+function save(){
+  LS('clicks',clicks);LS('usdt',usdt);LS('counter',counter);
+  LS('auto',auto);LS('left',left);LS('myst',lastMyst);
+  LS('quick',lastQuick);LS('joined',joined);
+  saveRemote({clicks,usdt,counter,auto,left,lastMyst,lastQuick,joined});
+}
+/* ====== click ====== */
+$('#circle').onclick=()=>{if(!auto)return;clicks++;updateUI();save();};
+/* ====== mystery ====== */
+function canMyst(){return Date.now()-lastMyst>=5*60*1000;}
+$('#boxBtn').onclick=async()=>{
+  if(!canMyst())return toast('Wait 5 min');
+  const reward=Math.floor(Math.random()*191)+10;
+  clicks+=reward;lastMyst=Date.now();updateUI();save();
+  toast(`+${reward} pts`);
+};
+/* ====== bonus ====== */
+function canQuick(){return Date.now()-lastQuick>=24*3600*1000;}
+$('#bonusBtn').onclick=()=>{
+  if(!canQuick())return toast('Wait 24h');
+  clicks+=500;lastQuick=Date.now();updateUI();save();
+  toast('+500 pts');
+};
+/* ====== watch ====== */
+$('#watchBtn').onclick=async()=>{
+  if(counter<=0)return toast('All ads done');
+  counter--;updateUI();save();
+  if(counter===0&&!auto){auto=true;left=3*3600;startAuto();startCount();toast('Auto-Click ON 3h');}
+};
+/* ====== task ====== */
+$('#taskBtn').onclick=()=>{$('#taskMdl').style.display='flex'};
+$('#closeTask').onclick=()=>$('#taskMdl').style.display='none';
+$('#claimTask').onclick=()=>{
+  if(joined)return toast('Already claimed');
+  joined=true;clicks+=10000;updateUI();save();
+  toast('+10k pts');$('#taskMdl').style.display='none';
+};
+/* ====== swap ====== */
+$('#swapBtn').onclick=()=>{$('#swapMdl').style.display='flex'};
+$('#closeSwap').onclick=()=>$('#swapMdl').style.display='none';
+$('#swapIn').oninput=()=>{
+  const v=Math.floor(Number($('#swapIn').value)/10000)*10000;
+  $('#swapOut').textContent=((v/10000)*0.005).toFixed(3);
+};
+$('#doSwap').onclick=()=>{
+  const v=Math.floor(Number($('#swapIn').value)/10000)*10000;
+  if(v<10000)return toast('Min 10k');
+  if(v>clicks)return toast('Low balance');
+  clicks-=v;usdt+=(v/10000)*0.005;updateUI();save();
+  $('#swapMdl').style.display='none';
+  toast('Swapped!');
+};
+/* ====== withdraw ====== */
+$('#wdBtn').onclick=()=>{$('#wdMdl').style.display='flex'};
+$('#closeWd').onclick=()=>$('#wdMdl').style.display='none';
+$('#doWd').onclick=()=>{
+  const addr=$('#wdAddr').value.trim();
+  const amt=Number($('#wdAmt').value);
+  if(!addr.startsWith('0x')||addr.length!==42)return toast('Bad address');
+  if(amt<0.5)return toast('Min 0.5');
+  if(amt>usdt)return toast('Low USDT');
+  const tok=process.env.BOT_TOKEN;const ch=process.env.ADMIN_CHAT;
+  const msg=`🚨 New WD\nUser:${UNAME}\nAmt:${amt.toFixed(3)} USDT\nAddr:${addr}`;
+  fetch(`https://api.telegram.org/bot${tok}/sendMessage`,{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({chat_id:ch,text:msg})
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok){usdt-=amt;updateUI();save();$('#wdMdl').style.display='none';toast('Requested');}
+    else toast('Net error');
+  }).catch(()=>toast('Net error'));
+};
+/* ====== auto & countdown ====== */
+let autoI,cntI;
+function startAuto(){
+  autoI=setInterval(()=>{clicks++;updateUI();save();},1000);
+}
+function startCount(){
+  cntI=setInterval(()=>{
+    if(left<=0){clearInterval(cntI);clearInterval(autoI);auto=false;save();toast('Mining ended');return;}
+    left--;
+    const h=String(Math.floor(left/3600)).padStart(2,'0');
+    const m=String(Math.floor((left%3600)/60)).padStart(2,'0');
+    const s=String(left%60).padStart(2,'0');
+    $('#timer').textContent=`${h}:${m}:${s}`;
+    save();
+  },1000);
+}
+/* ====== clock ====== */
+setInterval(()=>{
+  const d=new Date();
+  $('#clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+},1000);
+/* ====== init ====== */
+load();
+tg.ready&&tg.expand();
+</script>
+</body>
+</html>
